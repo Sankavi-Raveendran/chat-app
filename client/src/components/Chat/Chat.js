@@ -1,65 +1,64 @@
-import React, { useState, useEffect } from "react";
-import queryString from "query-string";
-import io from "socket.io-client";
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import queryString from 'query-string';
+import io from 'socket.io-client';
 
-import TextContainer from "../TextContainer/TextContainer";
-import Messages from "../Messages/Messages";
-import InfoBar from "../InfoBar/InfoBar";
-import Input from "../Input/Input";
+import TextContainer from '../TextContainer/TextContainer';
+import Messages from '../Messages/Messages';
+import InfoBar from '../InfoBar/InfoBar';
+import Input from '../Input/Input';
 
-import "./Chat.css";
+import './Chat.css';
 
-const ENDPOINT = "https://project-chat-application.herokuapp.com/";
+const ENDPOINT = 'https://project-chat-application.herokuapp.com/';
 
 let socket;
 
-const Chat = ({ location }) => {
-  const [name, setName] = useState("");
-  const [room, setRoom] = useState("");
-  const [users, setUsers] = useState([]);
-  const [message, setMessage] = useState("");
+function Chat() {
+  const location = useLocation();
+  const [name, setName] = useState('');
+  const [room, setRoom] = useState('');
+  const [users, setUsers] = useState('');
+  const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    const { name, room } = queryString.parse(location.search);
+    const { name: queryName, room: queryRoom } = queryString.parse(location.search);
 
     socket = io(ENDPOINT);
 
-    setRoom(room);
-    setName(name);
+    setRoom(queryRoom);
+    setName(queryName);
 
-    socket.emit("join", { name, room }, (error) => {
+    socket.emit('join', { name: queryName, room: queryRoom }, (error) => {
       if (error) {
-        alert(error);
+        // eslint-disable-next-line
+        console.error(error);
       }
     });
-
-    return () => {
-      socket.disconnect(); // Cleanup socket connection on unmount
-    };
   }, [location.search]);
 
   useEffect(() => {
-    socket.on("message", (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
+    socket.on('message', (msg) => {
+      setMessages((prevMessages) => [...prevMessages, msg]);
     });
 
-    socket.on("roomData", ({ users }) => {
-      setUsers(users);
+    socket.on('roomData', ({ users: roomUsers }) => {
+      setUsers(roomUsers);
     });
 
     return () => {
-      socket.off("message");
-      socket.off("roomData");
+      socket.off('message');
+      socket.off('roomData');
     };
   }, []);
 
   const sendMessage = (event) => {
     event.preventDefault();
+    if (!message) return;
 
-    if (message) {
-      socket.emit("sendMessage", message, () => setMessage(""));
-    }
+    socket.emit('sendMessage', message, () => setMessage(''));
   };
 
   return (
@@ -72,6 +71,13 @@ const Chat = ({ location }) => {
       <TextContainer users={users} />
     </div>
   );
+}
+
+Chat.propTypes = {
+  location: PropTypes.shape({
+    search: PropTypes.string.isRequired,
+  }).isRequired,
 };
 
 export default Chat;
+
